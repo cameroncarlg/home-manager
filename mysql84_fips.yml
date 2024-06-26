@@ -1,0 +1,90 @@
+---
+- name: Secure MySQL Server Setup
+  hosts: mysql_servers
+  become: yes
+  vars:
+    mysql_root_password: 'your_secure_password_here'
+    mysql_fips_mode: true
+    mysql_port: 3306
+    mysql_config_file: /etc/my.cnf
+
+  tasks:
+    - name: Ensure FIPS mode is enabled
+      ansible.builtin.command: "fips-mode-setup --enable"
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Ensure FIPS mode is activated
+      ansible.builtin.command: "grubby --update-kernel=ALL --args='fips=1'"
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Reboot the server to activate FIPS mode
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Install MySQL 8.4
+      ansible.builtin.yum:
+        name: mysql-server
+        state: present
+
+    - name: Ensure MySQL is started and enabled
+      ansible.builtin.service:
+        name: mysqld
+        state: started
+        enabled: yes
+
+    - name: Set MySQL root password
+      mysql_user:
+        name: root
+        host: localhost
+        password: "{{ mysql_root_password }}"
+        check_implicit_admin: yes
+
+    - name: Ensure MySQL configuration for SSL (without certificates)
+      ansible.builtin.lineinfile:
+        path: "{{ mysql_config_file }}"
+        regexp: '^\[mysqld\]'
+        insertbefore: '^#'
+        line: |
+          [mysqld]
+          ssl-ca=/etc/mysql/ssl/ca.pem
+          ssl-cert=/etc/mysql/ssl/server-cert.pem
+          ssl-key=/etc/mysql/ssl/server-key.pem
+        state: present
+
+    - name: Configure host-based firewall for MySQL
+      firewalld:
+        service: mysql
+        permanent: true
+        state: enabled
+        immediate: true
+
+    - name: Ensure only local connections to MySQL are allowed
+      ansible.builtin.lineinfile:
+        path: "{{ mysql_config_file }}"
+        regexp: '^bind-address'
+        line: 'bind-address = 127.0.0.1'
+        state: present
+
+    - name: Set secure file permissions for MySQL configuration
+      ansible.builtin.file:
+        path: "{{ mysql_config_file }}"
+        owner: mysql
+        group: mysql
+        mode: '0640'
+
+    - name: Remove anonymous MySQL users
+      mysql_user:
+        name: ''
+        host_all: yes
+        state: absent
+
+    - name: Remove test database
+      mysql_db:
+        name: test
+        state: absent
+
+    - name: Reload MySQL to apply changes
+      ansible.builtin.service:
+        name: mysqld
+        state: reloaded
