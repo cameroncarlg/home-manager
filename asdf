@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Function to make API request
+function call_openai_api() {
+    local prompt="$1"
+    local api_key="$OPENAI_API_KEY"
+    local response
+
+    # Make the API call
+    response=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
+        -H "Authorization: Bearer $api_key" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "model": "gpt-4",
+            "messages": [{"role": "user", "content": "'"$prompt"'"}],
+            "max_tokens": 150
+        }')
+
+    # Extract and print the response
+    echo "$response" | jq -r '.choices[0].message.content'
+}
+
+# Main program loop
+while true; do
+    read -p "(🖥️🖥️🖥️🖥️🖥️🖥🖥=>>" user_input
+
+    if [[ "$user_input" == "exit" ]]; then
+        echo "Goodbye!"
+        break
+    fi
+
+    echo "..."
+    call_openai_api "$user_input"
+done
+
