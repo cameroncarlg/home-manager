@@ -38,7 +38,6 @@
     speedtest-go # Terminal speedtest
     terminal-parrot # Terminal ASCII parrot
     nyancat # Modern Unix nyancat
-    dotacat # Modern Unix lolcat
     cpufetch # Terminal CPU info
     lazygit # Terminal git interface
     bat # Modern Unix 'cat'
@@ -46,16 +45,21 @@
     nix-prefetch-github # TBD
     nix-prefetch
     nh # Yet another Nix helper
-    # m-cli # TBD
-    # broot # Terminal File System navigator
     gh # GitHub CLI
     tig # Text mode interface for git
     nerdfonts # NerdFonts
     fira-code # FiraCode
-    lazydocker
     openvpn
     nmap
+    nil
+    nixfmt-rfc-style
+    # broot # Terminal File System navigator
 
+    # Broken
+
+    # lazydocker # Terminal docker interface (depreciated I think)
+    # dotacat # Modern Unix lolcat
+    # m-cli # TBD
 
     # Unsupported on MacOS
 
@@ -134,6 +138,16 @@
       #   command = "${typescript-language-server}/bin/typescript-language-server";
       #   args = [ "--stdio" "--tsserver-path=${typescript}/lib/node_modules/typescript/lib"];
       # };
+      nix = {
+        language-server = {
+          command = "${pkgs.nil}/bin/nil";
+          args = [ "--stdio" ];
+        };
+        formatter = {
+          command = "${pkgs.nixfmt-rfc-style}/bin/nixfmt";
+          args = [ "--stdio "];
+        };
+      };
       language = [
         {
           name = "html";
@@ -224,10 +238,10 @@
       # ll = "br -sdp";
     };
     functions = {
-      trash = "mv $argv[1] $HOME/.Trash";
+      # trash = "mv $argv[1] $HOME/.Trash";
       hxc = "sudo hx /etc/nixos/home.nix";
       hxcv = "sudo hx /etc/nixos/configuration.nix";
-      code = "codium";
+      # code = "codium";
       cd = "builtin cd $argv; and ls";
     };
     interactiveShellInit = "
